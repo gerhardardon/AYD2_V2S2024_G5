@@ -3,7 +3,7 @@ import { NavBar } from "../components/NavBar";
 import React, { useState } from "react";
 import { RiSlashCommands2 } from "react-icons/ri";
 
-export default function Retiros() {
+export default function Depositos() {
   return (
     <div className="App">
       <div className="home-container">
@@ -15,7 +15,7 @@ export default function Retiros() {
                 <RiSlashCommands2 />
               </h1>
               <h1 className="primary-text" style={{ marginRight: "20px" }}>
-                Retiros
+                Depositos
               </h1>
             </div>
           </div>
