@@ -3,8 +3,11 @@ import { NavBar } from "../components/NavBar";
 import React, { useState } from "react";
 import { RiSlashCommands2 } from "react-icons/ri";
 import Swal from 'sweetalert2';
+import GenerarComprobante from "./GenerarComprobante";
+import { useGlobalContext } from "./Global";
 
 export default function Retiros() {
+  const { variableGlobal, setVariableGlobal } = useGlobalContext();
   const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [withdrawalType, setWithdrawalType] = useState("ventanilla");
@@ -53,8 +56,11 @@ export default function Retiros() {
       });
 
       const data = await response.json();
-
+      
       if (response.ok) {
+        
+        console.log(data);
+        GenerarComprobante(data.cuenta, "Retiro", data.fechaHora, data.monto, variableGlobal);
         Swal.fire({
           icon: 'success',
           title: 'Éxito',
@@ -65,6 +71,7 @@ export default function Retiros() {
         setAmount("");
         setWithdrawalType("ventanilla");
         setDate(new Date().toLocaleString());
+        
       } else {
         Swal.fire({
           icon: 'error',
@@ -73,6 +80,7 @@ export default function Retiros() {
         });
       }
     } catch (error) {
+      console.error(error);
       Swal.fire({
         icon: 'error',
         title: 'Error',

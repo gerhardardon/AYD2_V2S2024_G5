@@ -13,7 +13,7 @@ CORS(app)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'root'
-app.config['MYSQL_DB'] = 'moneybindb'
+app.config['MYSQL_DB'] = 'MoneyBinDB'
 
 mysql = MySQL(app)
 
@@ -58,7 +58,10 @@ def depositar():
                        (account_number, 'Deposito', amount, date, 'Empleado1'))
         mysql.connection.commit()
         cursor.close()
-        return jsonify({'message': 'Depósito realizado con éxito!'})
+        return jsonify({'message': 'Depósito realizado con éxito!',
+            "fechaHora": str(date),
+            "monto": str(round(amount,2)),
+            "cuenta": str(account_number)})
     except Exception as e:
         return jsonify({'message': 'Error al realizar el depósito', 'error': str(e)}), 500
 
@@ -93,7 +96,11 @@ def retirar():
                        (account_number, 'Retiro', amount, date, 'Empleado1'))
         mysql.connection.commit()
         cursor.close()
-        return jsonify({'message': 'Retiro realizado con éxito!'})
+        return jsonify({'message': 'Retiro realizado con éxito!',
+            "fechaHora": str(date),
+            "monto": str(round(amount,2)),
+            "cuenta": str(account_number)})
+    
     except Exception as e:
         return jsonify({'message': 'Error al realizar el retiro', 'error': str(e)}), 500
     
@@ -175,6 +182,9 @@ def pagos_servicios():
             "message": "Pago realizado con éxito.",
             "idTransaccion": str(id_transaccion),
             "nuevoSaldo": str(nuevo_saldo),
+            "fechaHora": fecha_hora,
+            "monto": str(round(monto,2)),
+            "cuenta": numero_cuenta
         })
 
     except Exception as e:

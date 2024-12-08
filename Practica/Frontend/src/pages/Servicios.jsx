@@ -3,8 +3,11 @@ import { NavBar } from "../components/NavBar";
 // eslint-disable-next-line no-unused-vars
 import React, { useState } from "react";
 import { RiSlashCommands2 } from "react-icons/ri";
+import GenerarComprobante from "./GenerarComprobante";
+import { useGlobalContext } from "./Global";
 
-export default function Servicios() {
+export default function Servicios(user = "Default") {
+  const { variableGlobal, setVariableGlobal } = useGlobalContext();
   const [formData, setFormData] = useState({
     encargado: "",
     codigoServicio: "",
@@ -45,6 +48,8 @@ export default function Servicios() {
       if (response.ok) {
         const data = await response.json();
         setMensaje(`¡Pago procesado con éxito! ID de Transacción: ${data.idTransaccion}`);
+        GenerarComprobante(data.cuenta, "Pago de Servicio", data.fechaHora, data.monto, variableGlobal);
+
       } else {
         setMensaje("Error al procesar el pago. Intente nuevamente.");
       }
@@ -65,7 +70,7 @@ export default function Servicios() {
                 <RiSlashCommands2 />
               </h1>
               <h1 className="primary-text" style={{ marginRight: "20px" }}>
-                Pago de Servicios
+                Pago de Servicios {user.user}
               </h1>
             </div>
             {/* Formulario de pago */}
