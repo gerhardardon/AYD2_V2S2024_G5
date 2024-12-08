@@ -12,7 +12,9 @@ CORS(app)
 # Configuración de la base de datos
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'admin123'
 app.config['MYSQL_PASSWORD'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'admin123'
 app.config['MYSQL_DB'] = 'MoneyBinDB'
 
 mysql = MySQL(app)
@@ -192,6 +194,106 @@ def pagos_servicios():
         return jsonify({"error": f"Error en la base de datos: {str(e)}"}), 500
     finally:
         cursor.close()
+
+@app.route("/prestamo", methods=["POST"])
+def pagos_prestamo():
+    data = request.json
+    account_number = data.get("account_number")
+    amount = float(data.get("amount"))
+    deposit_method = data.get("deposit_method") 
+    numero_prestamo = data.get("numero_prestamo")
+    date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Validación de campos
+    if not account_number or not amount or not deposit_method or not numero_prestamo:
+        return jsonify({"error": "Todos los campos son obligatorios."}), 400
+    
+    #try-catch para manejar errores
+    try:
+
+        # Convertimos monto a Decimal para compatibilidad con la base de datos
+        amount = Decimal(amount)
+        # Crear un cursor para realizar consultas
+        cursor = mysql.connection.cursor()
+
+        # Paso 1: Verificar si la cuenta existe
+        query_cuenta = "SELECT SaldoActual FROM Cuenta WHERE NumeroCuenta = %s"
+        cursor.execute(query_cuenta, (account_number,))
+        cuenta = cursor.fetchone()
+
+        if not cuenta:
+            return jsonify({"message": f"No se encontró una cuenta con el número '{account_number}'."}), 404
+
+        saldo_actual = cuenta[0]
+        nuevo_saldo = saldo_actual - amount
+        #si es una transferencia se debe verificar que el monto sea mayor al monto
+        print(deposit_method)
+        if deposit_method == "transferencia":
+            if saldo_actual < amount:
+                return jsonify({"message": "Saldo insuficiente."}), 400
+            
+            query_update_saldo = """
+                UPDATE Cuenta
+                SET SaldoActual = %s, FechaUltimaActualizacion = %s
+                WHERE NumeroCuenta = %s
+            """
+            cursor.execute(query_update_saldo, (nuevo_saldo, date, account_number))
+            mysql.connection.commit()
+
+
+        # insertar transacción
+        query_transaccion = """
+            INSERT INTO Transaccion (NumeroCuenta, TipoTransaccion, Monto, FechaHora, EmpleadoAutorizado)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor.execute(query_transaccion, (account_number, 'PagoPrestamo', amount, date, 'Empleado1',))
+        mysql.connection.commit()
+        id_transaccion = cursor.lastrowid
+
+        # insertar detalles de prestamo
+        query_prestamo = """
+            INSERT INTO PagoPrestamo (IdTransaccion, NumeroPrestamo)
+            VALUES (%s, %s)
+        """
+        cursor.execute(query_prestamo, (id_transaccion, numero_prestamo))
+        mysql.connection.commit()
+        
+        #consulta el saldo en la tabla de prestamos
+        query_prestamo = "SELECT Monto FROM Prestamo WHERE IdPrestamo = %s"
+        cursor.execute(query_prestamo, (numero_prestamo,))
+        prestamo = cursor.fetchone()
+        if not prestamo:
+            return jsonify({"message": f"No se encontró un prestamo con el número '{numero_prestamo}'."}), 404
+            
+        monto_prestamo = prestamo[0]
+        nuevo_monto = monto_prestamo - amount
+        query_update_prestamo = """
+                UPDATE Prestamo
+                SET Monto = %s
+                WHERE IdPrestamo = %s
+            """
+        cursor.execute(query_update_prestamo, (nuevo_monto, numero_prestamo))
+        mysql.connection.commit()
+ 
+
+        # Datos para el comprobante:
+        print(account_number,"Pago de prestamo",date,amount,"nombreyfirma")
+
+        # Respuesta exitosa
+        return jsonify({
+            "message": "Pago realizado con éxito.",
+            "idTransaccion": str(id_transaccion),
+            "nuevoSaldo": str(nuevo_saldo),
+            "fechaHora": date,
+            "monto": str(round(amount,2)),
+            "cuenta": account_number
+        })
+    except Exception as e:
+        print(e)
+        return jsonify({"error": f"Error en la base de datos: {str(e)}"}), 500
+    finally:
+        cursor.close()
+
 
 
 if __name__ == '__main__':
