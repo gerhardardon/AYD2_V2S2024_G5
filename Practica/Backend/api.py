@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_mysqldb import MySQL
 from flask_cors import CORS
 from datetime import datetime
+from decimal import Decimal
 
 app = Flask(__name__)
 
@@ -11,7 +12,7 @@ CORS(app)
 # Configuración de la base de datos
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'sasa'
+app.config['MYSQL_PASSWORD'] = 'root'
 app.config['MYSQL_DB'] = 'moneybindb'
 
 mysql = MySQL(app)
@@ -95,6 +96,93 @@ def retirar():
         return jsonify({'message': 'Retiro realizado con éxito!'})
     except Exception as e:
         return jsonify({'message': 'Error al realizar el retiro', 'error': str(e)}), 500
+    
+
+
+@app.route("/pagos-servicios", methods=["POST"])
+def pagos_servicios():
+    data = request.json
+    encargado = data.get("encargado")
+    codigo_servicio = data.get("codigoServicio")
+    monto = float(data.get("monto"))
+
+    if not encargado or not codigo_servicio or not monto:
+        return jsonify({"error": "Todos los campos son obligatorios."}), 400
+
+    try:
+        # Convertimos monto a Decimal para compatibilidad con la base de datos
+        monto = Decimal(monto)
+        # Crear un cursor para realizar consultas
+        cursor = mysql.connection.cursor()
+
+        # Paso 1: Buscar el CUI del cliente dado su nombre
+        query_cui = "SELECT CUI FROM Cliente WHERE CONCAT(Nombre, ' ', Apellido) = %s"
+        cursor.execute(query_cui, (encargado,))
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({"error": f"No se encontró un cliente con el nombre '{encargado}'."}), 404
+
+        cui = result[0]
+
+        # Paso 2: Buscar el número de cuenta asociado al CUI
+        query_cuenta = "SELECT NumeroCuenta, SaldoActual FROM Cuenta WHERE CUI = %s"
+        cursor.execute(query_cuenta, (cui,))
+        cuenta = cursor.fetchone()
+        if not cuenta:
+            return jsonify({"error": f"No se encontró una cuenta asociada al cliente con CUI {cui}."}), 404
+
+        numero_cuenta, saldo_actual = cuenta
+
+        # Verificar si el saldo es suficiente
+        if saldo_actual < monto:
+            return jsonify({"error": "Saldo insuficiente."}), 400
+
+        # Paso 3: Registrar la transacción en la tabla `Transaccion`
+        fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        empleado_autorizado = "Empleado1"  # Cambiar según lógica de autenticación
+
+        query_transaccion = """
+            INSERT INTO Transaccion (NumeroCuenta, TipoTransaccion, Monto, FechaHora, EmpleadoAutorizado)
+            VALUES (%s, 'PagoServicio', %s, %s, %s)
+        """
+        cursor.execute(query_transaccion, (numero_cuenta, monto, fecha_hora, empleado_autorizado))
+        mysql.connection.commit()
+        id_transaccion = cursor.lastrowid
+
+        # Paso 4: Registrar los detalles en la tabla `PagoServicio`
+        query_pago_servicio = """
+            INSERT INTO PagoServicio (IdTransaccion, NombreEncargado, CodigoServicio)
+            VALUES (%s, %s, %s)
+        """
+        cursor.execute(query_pago_servicio, (id_transaccion, encargado, codigo_servicio))
+        mysql.connection.commit()
+
+        # Paso 5: Actualizar el saldo de la cuenta
+        nuevo_saldo = saldo_actual - monto
+        query_update_saldo = """
+            UPDATE Cuenta
+            SET SaldoActual = %s, FechaUltimaActualizacion = %s
+            WHERE NumeroCuenta = %s
+        """
+        cursor.execute(query_update_saldo, (nuevo_saldo, fecha_hora, numero_cuenta))
+        mysql.connection.commit()
+
+        # Datos pal comprobante:
+        print(numero_cuenta,"Pago de servicios",fecha_hora,monto,"nombreyfirma")
+
+        # Respuesta exitosa
+        return jsonify({
+            "message": "Pago realizado con éxito.",
+            "idTransaccion": str(id_transaccion),
+            "nuevoSaldo": str(nuevo_saldo),
+        })
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": f"Error en la base de datos: {str(e)}"}), 500
+    finally:
+        cursor.close()
+
 
 if __name__ == '__main__':
     app.run(debug=True)
