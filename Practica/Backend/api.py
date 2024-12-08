@@ -12,7 +12,9 @@ CORS(app)
 # Configuración de la base de datos
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'Camila2019'
+app.config['MYSQL_PASSWORD'] = 'admin123'
+app.config['MYSQL_PASSWORD'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'admin123'
 app.config['MYSQL_DB'] = 'MoneyBinDB'
 
 mysql = MySQL(app)
