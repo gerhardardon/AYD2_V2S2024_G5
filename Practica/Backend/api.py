@@ -12,7 +12,7 @@ CORS(app)
 # Configuración de la base de datos
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'Camila2019'
+app.config['MYSQL_PASSWORD'] = 'rot'
 app.config['MYSQL_DB'] = 'MoneyBinDB'
 
 mysql = MySQL(app)
@@ -195,7 +195,6 @@ def pagos_servicios():
 
 @app.route("/prestamo", methods=["POST"])
 def pagos_prestamo():
-    print("entro")
     data = request.json
     account_number = data.get("account_number")
     amount = float(data.get("amount"))
@@ -207,10 +206,9 @@ def pagos_prestamo():
     if not account_number or not amount or not deposit_method or not numero_prestamo:
         return jsonify({"error": "Todos los campos son obligatorios."}), 400
     
-    print("entro2")
     #try-catch para manejar errores
     try:
-        print("entro3")
+
         # Convertimos monto a Decimal para compatibilidad con la base de datos
         amount = Decimal(amount)
         # Crear un cursor para realizar consultas
@@ -220,9 +218,8 @@ def pagos_prestamo():
         query_cuenta = "SELECT SaldoActual FROM Cuenta WHERE NumeroCuenta = %s"
         cursor.execute(query_cuenta, (account_number,))
         cuenta = cursor.fetchone()
-        print("entro4")
+
         if not cuenta:
-            print("entro4.1")
             return jsonify({"message": f"No se encontró una cuenta con el número '{account_number}'."}), 404
 
         saldo_actual = cuenta[0]
@@ -241,7 +238,6 @@ def pagos_prestamo():
             mysql.connection.commit()
 
 
-        print("entro5")
         # insertar transacción
         query_transaccion = """
             INSERT INTO Transaccion (NumeroCuenta, TipoTransaccion, Monto, FechaHora, EmpleadoAutorizado)
@@ -251,7 +247,6 @@ def pagos_prestamo():
         mysql.connection.commit()
         id_transaccion = cursor.lastrowid
 
-        print("entro6")
         # insertar detalles de prestamo
         query_prestamo = """
             INSERT INTO PagoPrestamo (IdTransaccion, NumeroPrestamo)
@@ -259,7 +254,7 @@ def pagos_prestamo():
         """
         cursor.execute(query_prestamo, (id_transaccion, numero_prestamo))
         mysql.connection.commit()
-        print("entro7")
+ 
 
         # Datos para el comprobante:
         print(account_number,"Pago de prestamo",date,amount,"nombreyfirma")
