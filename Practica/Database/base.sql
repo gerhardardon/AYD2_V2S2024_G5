@@ -31,6 +31,14 @@ CREATE TABLE Transaccion (
     FOREIGN KEY (NumeroCuenta) REFERENCES Cuenta(NumeroCuenta)
 );
 
+-- Tabla de Prestamos
+CREATE TABLE Prestamo(
+    IdPrestamo INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    NumeroCuenta INT NOT NULL,
+    Monto DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (NumeroCuenta) REFERENCES Cuenta(NumeroCuenta)
+);
+
 -- Tabla PagoPrestamo
 CREATE TABLE PagoPrestamo (
     IdPagoPrestamo INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -70,6 +78,10 @@ INSERT INTO Cuenta (NumeroCuenta, CUI, SaldoActual, FechaUltimaActualizacion) VA
 INSERT INTO Transaccion (NumeroCuenta, TipoTransaccion, Monto, FechaHora, EmpleadoAutorizado) VALUES
 (1001, 'Deposito', 1000.00, '2024-12-07 10:30:00', 'Empleado1'),
 (1002, 'PagoServicio', 500.00, '2024-12-07 11:15:00', 'Empleado2');
+
+-- inserta un Prestamo
+INSERT INTO Prestamo (NumeroCuenta, Monto) VALUES
+(1001, 10000);
 
 -- Insertar datos de ejemplo en PagoPrestamo
 INSERT INTO PagoPrestamo (IdTransaccion, NumeroPrestamo) VALUES

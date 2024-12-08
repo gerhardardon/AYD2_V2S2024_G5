@@ -12,7 +12,7 @@ CORS(app)
 # Configuración de la base de datos
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'rot'
+app.config['MYSQL_PASSWORD'] = 'Camila2019'
 app.config['MYSQL_DB'] = 'MoneyBinDB'
 
 mysql = MySQL(app)
@@ -225,9 +225,10 @@ def pagos_prestamo():
         saldo_actual = cuenta[0]
         nuevo_saldo = saldo_actual - amount
         #si es una transferencia se debe verificar que el monto sea mayor al monto
-        if deposit_method == "Transferencia":
+        print(deposit_method)
+        if deposit_method == "transferencia":
             if saldo_actual < amount:
-                return jsonify({"error": "Saldo insuficiente."}), 400
+                return jsonify({"message": "Saldo insuficiente."}), 400
             
             query_update_saldo = """
                 UPDATE Cuenta
@@ -253,6 +254,23 @@ def pagos_prestamo():
             VALUES (%s, %s)
         """
         cursor.execute(query_prestamo, (id_transaccion, numero_prestamo))
+        mysql.connection.commit()
+        
+        #consulta el saldo en la tabla de prestamos
+        query_prestamo = "SELECT Monto FROM Prestamo WHERE IdPrestamo = %s"
+        cursor.execute(query_prestamo, (numero_prestamo,))
+        prestamo = cursor.fetchone()
+        if not prestamo:
+            return jsonify({"message": f"No se encontró un prestamo con el número '{numero_prestamo}'."}), 404
+            
+        monto_prestamo = prestamo[0]
+        nuevo_monto = monto_prestamo - amount
+        query_update_prestamo = """
+                UPDATE Prestamo
+                SET Monto = %s
+                WHERE IdPrestamo = %s
+            """
+        cursor.execute(query_update_prestamo, (nuevo_monto, numero_prestamo))
         mysql.connection.commit()
  
 
