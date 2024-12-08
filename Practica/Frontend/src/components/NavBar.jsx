@@ -12,7 +12,6 @@ export function NavBar() {
         <a href="#/Servicios">Servicios</a>
         <a href="#/Prestamos">Prestamos</a>
         <a href="#/Buscar">Buscar</a>
-        <a href="#/Comprobante">Comprobantes</a>
         <a href="#/Retiros">Retiros</a>
         <a href="#/Depositos">Depositos</a>
       </div>
