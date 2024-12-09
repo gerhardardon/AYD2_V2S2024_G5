@@ -1,0 +1,77 @@
+.buscar-container {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .buscar-barra {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .buscar-select {
+    margin-right: 10px;
+    padding: 8px;
+    font-size: 16px;
+  }
+  
+  .buscar-input {
+    flex: 1;
+    padding: 8px;
+    font-size: 16px;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .buscar-boton {
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  
+  .buscar-boton:hover {
+    background-color: #0056b3;
+  }
+  
+  .error-mensaje {
+    color: red;
+    margin-bottom: 20px;
+  }
+  
+  .resultado-container {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+  }
+  
+  .cliente-detalle,
+  .transacciones-detalle {
+    flex: 1;
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .cliente-detalle h3,
+  .transacciones-detalle h3 {
+    margin-bottom: 10px;
+  }
+  
+  .transacciones-detalle ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .transacciones-detalle li {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+  }

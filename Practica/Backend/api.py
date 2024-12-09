@@ -12,9 +12,7 @@ CORS(app)
 # Configuración de la base de datos
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'admin123'
 app.config['MYSQL_PASSWORD'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'admin123'
 app.config['MYSQL_DB'] = 'MoneyBinDB'
 
 mysql = MySQL(app)
@@ -294,7 +292,136 @@ def pagos_prestamo():
     finally:
         cursor.close()
 
+@app.route('/buscar_por_cuenta', methods=['POST'])
+def buscar_por_cuenta():
+    # Obtener el JSON enviado en el cuerpo de la solicitud
+    data = request.get_json()
 
+    if not data or 'numero_cuenta' not in data:
+        return jsonify({'error': 'El campo numero_cuenta es requerido en el cuerpo de la solicitud'}), 400
+
+    numero_cuenta = data['numero_cuenta']
+
+    try:
+        cursor = mysql.connection.cursor()
+
+        # Consultar los detalles del cliente
+        query_cliente = """
+            SELECT c.CUI, c.Nombre, c.Apellido, c.Direccion, c.Telefono
+            FROM Cliente c
+            JOIN Cuenta ct ON c.CUI = ct.CUI
+            WHERE ct.NumeroCuenta = %s
+        """
+        cursor.execute(query_cliente, (numero_cuenta,))
+        cliente = cursor.fetchone()
+
+        if not cliente:
+            return jsonify({'error': 'No se encontró ningún cliente con el número de cuenta proporcionado'}), 404
+
+        cliente_data = {
+            'CUI': cliente[0],
+            'Nombre': cliente[1],
+            'Apellido': cliente[2],
+            'Direccion': cliente[3],
+            'Telefono': cliente[4]
+        }
+
+        # Consultar el historial de transacciones
+        query_transacciones = """
+            SELECT t.IdTransaccion, t.TipoTransaccion, t.Monto, t.FechaHora, t.EmpleadoAutorizado
+            FROM Transaccion t
+            WHERE t.NumeroCuenta = %s
+            ORDER BY t.FechaHora DESC
+        """
+        cursor.execute(query_transacciones, (numero_cuenta,))
+        transacciones = cursor.fetchall()
+
+        transacciones_data = [
+            {
+                'IdTransaccion': transaccion[0],
+                'TipoTransaccion': transaccion[1],
+                'Monto': float(transaccion[2]),  # Convertir Decimal a float para JSON
+                'FechaHora': transaccion[3].strftime('%Y-%m-%d %H:%M:%S'),
+                'EmpleadoAutorizado': transaccion[4]
+            }
+            for transaccion in transacciones
+        ]
+
+        # Respuesta final
+        return jsonify({
+            'Cliente': cliente_data,
+            'HistorialTransacciones': transacciones_data
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+@app.route('/buscar_por_cui', methods=['POST'])
+def buscar_por_cui():
+    # Validar el encabezado Content-Type
+    if request.content_type != 'application/json':
+        return jsonify({'error': 'El Content-Type debe ser application/json'}), 415
+
+    # Obtener el JSON enviado en el cuerpo de la solicitud
+    data = request.get_json()
+
+    if not data or 'cui' not in data:
+        return jsonify({'error': 'El campo cui es requerido en el cuerpo de la solicitud'}), 400
+
+    cui = data['cui']
+
+    try:
+        cursor = mysql.connection.cursor()
+
+        # Consultar los detalles del cliente
+        query_cliente = """
+            SELECT c.CUI, c.Nombre, c.Apellido, c.Direccion, c.Telefono
+            FROM Cliente c
+            WHERE c.CUI = %s
+        """
+        cursor.execute(query_cliente, (cui,))
+        cliente = cursor.fetchone()
+
+        if not cliente:
+            return jsonify({'error': 'No se encontró ningún cliente con el CUI proporcionado'}), 404
+
+        cliente_data = {
+            'CUI': cliente[0],
+            'Nombre': cliente[1],
+            'Apellido': cliente[2],
+            'Direccion': cliente[3],
+            'Telefono': cliente[4]
+        }
+
+        # Consultar el historial de transacciones asociadas a las cuentas del cliente
+        query_transacciones = """
+            SELECT t.IdTransaccion, t.TipoTransaccion, t.Monto, t.FechaHora, t.EmpleadoAutorizado
+            FROM Transaccion t
+            JOIN Cuenta ct ON t.NumeroCuenta = ct.NumeroCuenta
+            WHERE ct.CUI = %s
+            ORDER BY t.FechaHora DESC
+        """
+        cursor.execute(query_transacciones, (cui,))
+        transacciones = cursor.fetchall()
+
+        transacciones_data = [
+            {
+                'IdTransaccion': transaccion[0],
+                'TipoTransaccion': transaccion[1],
+                'Monto': float(transaccion[2]),  # Convertir Decimal a float para JSON
+                'FechaHora': transaccion[3].strftime('%Y-%m-%d %H:%M:%S'),
+                'EmpleadoAutorizado': transaccion[4]
+            }
+            for transaccion in transacciones
+        ]
+
+        # Respuesta final
+        return jsonify({
+            'Cliente': cliente_data,
+            'HistorialTransacciones': transacciones_data
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
